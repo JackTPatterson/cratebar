@@ -65,7 +65,16 @@ artwork, and files it into a folder you choose.
 
 ---
 
-## Install
+The app is **signed with a Developer ID and notarized by Apple**, so it opens
+normally — no Gatekeeper warning.
+
+### Direct download
+
+Grab `Cratebar-<version>.dmg` from the
+[latest release](https://github.com/JackTPatterson/cratebar/releases/latest),
+open it, and drag **Cratebar.app** to Applications. You'll also need `yt-dlp`
+and `ffmpeg` (`brew install yt-dlp ffmpeg`, or let Cratebar install them from
+Settings on first run).
 
 ### Homebrew (recommended)
 
@@ -75,8 +84,9 @@ brew install --cask cratebar
 ```
 
 This installs **Cratebar.app** into `/Applications` along with its dependencies
-(`yt-dlp`, `ffmpeg`). The app is **signed with a Developer ID and notarized by
-Apple**, so it opens normally — no Gatekeeper warning.
+(`yt-dlp`, `ffmpeg`). If Homebrew reports the tap is untrusted (third-party
+casks run install code), approve it with `brew trust jacktpatterson/tap` and
+re-run.
 
 Update / uninstall later with `brew upgrade --cask cratebar` /
 `brew uninstall --cask cratebar`.
