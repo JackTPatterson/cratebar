@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎚️ Cratebar
+# Cratebar
 
 **Search SoundCloud and drop tracks straight into your DJ crate — from the macOS menu bar.**
 
