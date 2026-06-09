@@ -20,6 +20,7 @@
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source "Scripts/_notary.sh"
 
 TEAM_ID="${TEAM_ID:-P8FLGJ3757}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-cratebar}"
@@ -47,7 +48,7 @@ rm -f "${ZIP}"
 ditto -c -k --keepParent "${APP}" "${ZIP}"
 
 echo "▸ Submitting to Apple notary service (this can take a few minutes)…"
-xcrun notarytool submit "${ZIP}" --keychain-profile "${NOTARY_PROFILE}" --wait
+notarize_file "${ZIP}"
 
 echo "▸ Stapling ticket to the app…"
 xcrun stapler staple "${APP}"

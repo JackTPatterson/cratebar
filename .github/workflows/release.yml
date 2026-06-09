@@ -1,6 +1,6 @@
 name: Release
 
-# Push a version tag to cut a release, e.g.:
+# Push a version tag to cut a signed + notarized release, e.g.:
 #   git tag v1.1 && git push origin v1.1
 on:
   push:
@@ -14,8 +14,11 @@ jobs:
   release:
     runs-on: macos-14
     env:
-      # Whether the optional tap-bump step can run (secret present?).
       HAS_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+      # Notarization credentials (consumed by Scripts/_notary.sh).
+      TEAM_ID: P8FLGJ3757
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,42 +28,65 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Import Developer ID certificate
+        env:
+          CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PW="$(openssl rand -base64 24)"
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PW" "$KEYCHAIN" >/dev/null
+          # Prepend our keychain to the search list so codesign sees the identity.
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning | grep "Developer ID Application" || {
+            echo "::error::No Developer ID Application identity after import"; exit 1; }
+
       - name: Derive version from tag
         id: ver
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Build .app bundle
-        run: ./Scripts/build-app.sh
+      - name: Build · sign · notarize · staple (.app + .zip)
+        run: ./Scripts/notarize.sh "${{ steps.ver.outputs.version }}"
 
-      - name: Package & checksum
+      - name: Build · sign · notarize · staple (.dmg)
+        run: ./Scripts/make-dmg.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Checksum
         id: pkg
         run: |
           cd build
-          ZIP="Cratebar-${{ steps.ver.outputs.version }}.zip"
-          ditto -c -k --keepParent Cratebar.app "$ZIP"
-          SHA=$(shasum -a 256 "$ZIP" | awk '{print $1}')
-          echo "zip=build/$ZIP" >> "$GITHUB_OUTPUT"
+          SHA=$(shasum -a 256 "Cratebar-${{ steps.ver.outputs.version }}.zip" | awk '{print $1}')
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           {
             echo "### Cratebar ${{ steps.ver.outputs.version }}"
-            echo "\`$ZIP\` sha256: \`$SHA\`"
+            echo "zip sha256: \`$SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.pkg.outputs.zip }}
+          files: |
+            build/Cratebar-${{ steps.ver.outputs.version }}.zip
+            build/Cratebar-${{ steps.ver.outputs.version }}.dmg
           generate_release_notes: true
           body: |
-            ### Install via Homebrew
+            Signed with a Developer ID and notarized by Apple — opens with no Gatekeeper warning.
+
+            ### Download & install
+            **Direct:** grab the `.dmg` below, open it, drag **Cratebar.app** to Applications.
+
+            **Homebrew:**
             ```
             brew tap JackTPatterson/tap
             brew install --cask cratebar
             ```
-            This also installs the required `yt-dlp` and `ffmpeg`.
-
-            The app is ad-hoc signed (not notarized); on first launch right-click → **Open**,
-            or run `xattr -dr com.apple.quarantine /Applications/Cratebar.app`.
+            Either way you'll need `yt-dlp` and `ffmpeg` (the cask installs them automatically).
 
       - name: Bump Homebrew cask in tap
         if: ${{ env.HAS_TAP_TOKEN == 'true' }}
@@ -86,6 +112,5 @@ jobs:
       - name: Tap bump skipped (no token)
         if: ${{ env.HAS_TAP_TOKEN != 'true' }}
         run: |
-          echo "::notice::HOMEBREW_TAP_TOKEN not set — release created, but the cask was not"
-          echo "::notice::auto-bumped. Update Casks/cratebar.rb manually with version"
-          echo "::notice::${{ steps.ver.outputs.version }} and sha256 ${{ steps.pkg.outputs.sha }}."
+          echo "::notice::HOMEBREW_TAP_TOKEN not set — release published, cask not auto-bumped."
+          echo "::notice::Bump Casks/cratebar.rb to version ${{ steps.ver.outputs.version }}, sha256 ${{ steps.pkg.outputs.sha }}."

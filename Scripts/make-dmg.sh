@@ -9,6 +9,7 @@
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source "Scripts/_notary.sh"
 
 VERSION="${1:-1.0}"
 TEAM_ID="${TEAM_ID:-P8FLGJ3757}"
@@ -37,7 +38,7 @@ if [[ -n "${SIGN_IDENTITY}" ]]; then
   codesign --force --sign "${SIGN_IDENTITY}" "$DMG"
 
   echo "▸ Notarizing .dmg…"
-  xcrun notarytool submit "$DMG" --keychain-profile "${NOTARY_PROFILE}" --wait
+  notarize_file "$DMG"
 
   echo "▸ Stapling .dmg…"
   xcrun stapler staple "$DMG"
