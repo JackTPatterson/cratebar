@@ -67,6 +67,26 @@ artwork, and files it into a folder you choose.
 
 ## Install
 
+### Homebrew (recommended)
+
+```bash
+brew tap JackTPatterson/tap
+brew install --cask cratebar
+```
+
+This installs **Cratebar.app** into `/Applications` along with its dependencies
+(`yt-dlp`, `ffmpeg`). Cratebar is ad-hoc signed (not notarized), so on first
+launch right-click the app → **Open**, or run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Cratebar.app
+```
+
+Update / uninstall later with `brew upgrade --cask cratebar` /
+`brew uninstall --cask cratebar`.
+
+### Build from source
+
 ```bash
 git clone https://github.com/JackTPatterson/cratebar.git
 cd cratebar
@@ -87,7 +107,7 @@ Prefer to run straight from source while hacking on it:
 swift run Cratebar
 ```
 
-A small **download-into-box** icon appears in your menu bar. Click it to start.
+A small **record-stack** icon appears in your menu bar. Click it to start.
 
 ---
 
