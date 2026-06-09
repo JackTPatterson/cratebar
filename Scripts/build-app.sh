@@ -49,9 +49,21 @@ cat > "${APP_DIR}/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-echo "▸ Ad-hoc code signing…"
-codesign --force --deep --sign - "${APP_DIR}" >/dev/null 2>&1 || \
-  echo "  (codesign skipped — app still runnable)"
+# Sign with a Developer ID identity when provided (enables notarization),
+# otherwise fall back to an ad-hoc signature (still runnable, but Gatekeeper
+# will quarantine downloads).
+#   SIGN_IDENTITY="Developer ID Application: Name (TEAMID)" ./Scripts/build-app.sh
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+  echo "▸ Signing with Developer ID + hardened runtime…"
+  echo "  identity: ${SIGN_IDENTITY}"
+  codesign --force --deep --timestamp --options runtime \
+    --sign "${SIGN_IDENTITY}" "${APP_DIR}"
+  codesign --verify --deep --strict --verbose=1 "${APP_DIR}"
+else
+  echo "▸ Ad-hoc code signing…"
+  codesign --force --deep --sign - "${APP_DIR}" >/dev/null 2>&1 || \
+    echo "  (codesign skipped — app still runnable)"
+fi
 
 echo "✅ Built ${APP_DIR}"
 echo "   Run it:        open ${APP_DIR}"
