@@ -65,6 +65,8 @@ artwork, and files it into a folder you choose.
 
 ---
 
+## Install
+
 The app is **signed with a Developer ID and notarized by Apple**, so it opens
 normally — no Gatekeeper warning.
 
