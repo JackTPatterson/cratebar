@@ -1,0 +1,21 @@
+# Swift / SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Build output
+build/
+*.app
+
+# macOS
+.DS_Store
+
+# Xcode (if opened there)
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+
+# Editor
+.vscode/
+.idea/
