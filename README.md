@@ -75,12 +75,8 @@ brew install --cask cratebar
 ```
 
 This installs **Cratebar.app** into `/Applications` along with its dependencies
-(`yt-dlp`, `ffmpeg`). Cratebar is ad-hoc signed (not notarized), so on first
-launch right-click the app → **Open**, or run:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/Cratebar.app
-```
+(`yt-dlp`, `ffmpeg`). The app is **signed with a Developer ID and notarized by
+Apple**, so it opens normally — no Gatekeeper warning.
 
 Update / uninstall later with `brew upgrade --cask cratebar` /
 `brew uninstall --cask cratebar`.
